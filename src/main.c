@@ -312,19 +312,27 @@ static void fingerCallback() {
   }
 }
 
+int xy2i(u32 x, u32 y, u32 w, u8 sizet) {
+  return ((y * w) + x) * sizet;
+}
+
 void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
 
   // perform blit calculations
   if (isFingerDown) {
-    u32 begin = ((fingerY * WINDOW_WIDTH) + fingerX) * 4;
-    u32 end = begin + 100;
-    for (u32 i = begin; i < end; i += 4) {
-      canvas[i + 0] = urandom(0, 255);  // R
-      canvas[i + 1] = urandom(0, 255);  // G
-      canvas[i + 2] = urandom(0, 255);  // B
-      canvas[i + 3] = urandom(0, 255);  // A
+    u32 BRUSH_SIZE = 16;
+    for (u32 x = 0; x < BRUSH_SIZE; x++) {
+      for (u32 y = 0; y < BRUSH_SIZE; y++) {
+        u32 i = xy2i(fingerX + x, fingerY + y, WINDOW_WIDTH, 4);
+        if (i > canvas_size) continue;
+        canvas[i + 0] = 255;  // R
+        canvas[i + 1] = 255;  // G
+        canvas[i + 2] = 0;    // B
+        canvas[i + 3] = 255;  // A
+      }
     }
+
     isCanvasDirty = true;
   }
 }
