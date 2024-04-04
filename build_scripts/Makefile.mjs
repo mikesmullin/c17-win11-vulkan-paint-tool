@@ -52,7 +52,7 @@ C_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'stb-2.29', 'include')}
 // C_COMPILER_ARGS.push(`-I${rel(workspaceFolder, 'vendor', 'cmixer-076653c', 'include')}`);
 const LINKER_LIBS = [];
 if (isWin) {
-  // LINKER_LIBS.push('-l', 'user32');
+  LINKER_LIBS.push('-l', 'user32');
   // LINKER_LIBS.push('-l', 'shell32');
   // LINKER_LIBS.push('-l', 'gdi32');
 }

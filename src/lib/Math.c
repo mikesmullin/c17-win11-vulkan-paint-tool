@@ -13,3 +13,11 @@ f64 Math__mod(f64 a, f64 b) {
   }
   return a;
 }
+
+f64 Math__sin(f64 x) {
+  return sin(x);
+}
+
+f64 Math__pow(f64 x, f64 y) {
+  return pow(x, y);
+}

@@ -4,6 +4,9 @@
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 
+// windows-specific pen driver stuff
+#include <SDL2/SDL_syswm.h>
+
 #include "Base.h"
 
 typedef enum {
@@ -35,6 +38,7 @@ typedef struct {
 
 extern FingerState_t g_Finger__state;
 
+void Finger__Init();
 void Finger__OnInput(const SDL_Event* event);
 void Finger__RegisterCallback(void(*cb));
 void Finger__DispatchCallbacks();

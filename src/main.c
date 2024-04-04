@@ -4,6 +4,7 @@
 
 #include "lib/Finger.h"
 #include "lib/Keyboard.h"
+#include "lib/Math.h"
 #include "lib/SDL.h"
 #include "lib/Timer.h"
 #include "lib/Vulkan.h"
@@ -106,6 +107,7 @@ int main() {
 
   Window__New(&s_Window, WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, &s_Vulkan);
   SDL__Init();
+  Finger__Init();
 
   Keyboard__RegisterCallback(keyboardCallback);
   Finger__RegisterCallback(fingerCallback);
@@ -310,9 +312,9 @@ static void fingerCallback() {
     fingerX = g_Finger__state.x;
     fingerY = g_Finger__state.y;
   } else if (FINGER_MOVE == g_Finger__state.event) {
-    if (g_Finger__state.pressure > 0) {
-      isFingerDown = true;
-    }
+    // if (g_Finger__state.pressure > 0) {
+    //   isFingerDown = true;
+    // }
     fingerX = g_Finger__state.x;
     fingerY = g_Finger__state.y;
   }
@@ -322,15 +324,29 @@ int xy2i(u32 x, u32 y, u32 w, u8 sizet) {
   return ((y * w) + x) * sizet;
 }
 
+u8* interpolateSinebow(f32 t) {
+  t = 0.5 - t;
+  return (u8[3]){
+      255 * Math__pow(Math__sin(Math__PI * (t + 0. / 3)), 2),
+      255 * Math__pow(Math__sin(Math__PI * (t + 1. / 3)), 2),
+      255 * Math__pow(Math__sin(Math__PI * (t + 2. / 3)), 2)};
+}
+
 void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
 
   // perform blit calculations
   if (isFingerDown) {
-    u32 BRUSH_SIZE = 16;
-    u8 COLOR_R = urandom(0, 255);
-    u8 COLOR_G = urandom(0, 255);
-    u8 COLOR_B = urandom(0, 255);
+    u32 BRUSH_SIZE = 30 * g_Finger__state.pressure + 2;
+    // u32 COLOR = 0xffffff * g_Finger__state.pressure;
+    // u8 COLOR_R = (COLOR & 0xff0000) >> 16;
+    // u8 COLOR_G = (COLOR & 0x00ff00) >> 8;
+    // u8 COLOR_B = (COLOR & 0x0000ff);
+    u8* COLORZ = interpolateSinebow(g_Finger__state.pressure);
+    u8 COLOR_R = COLORZ[0];
+    u8 COLOR_G = COLORZ[1];
+    u8 COLOR_B = COLORZ[2];
+
     for (u32 x = 0; x < BRUSH_SIZE; x++) {
       for (u32 y = 0; y < BRUSH_SIZE; y++) {
         u32 i = xy2i(fingerX + x, fingerY + y, WINDOW_WIDTH, 4);

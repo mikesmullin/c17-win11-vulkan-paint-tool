@@ -5,6 +5,14 @@ FingerState_t g_Finger__state = {};
 #define FINGER_CALLBACKS_CAP 10
 static const void (*CALLBACKS[FINGER_CALLBACKS_CAP])();
 static u8 callbackCount = 0;
+#define MAX_PEN_PRESSURE 1024.0
+
+void Finger__Init() {
+  // enable windows-specific pen driver events
+  SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
+
+  g_Finger__state.pressure = 0.0f;
+}
 
 void Finger__RegisterCallback(void(*cb)) {
   ASSERT(callbackCount < FINGER_CALLBACKS_CAP);
@@ -21,7 +29,7 @@ void Finger__DispatchCallbacks() {
 void Finger__OnInput(const SDL_Event* event) {
   g_Finger__state.event = FINGER_NONE;
   g_Finger__state.clicks = 0;
-  g_Finger__state.pressure = 0.0f;
+  // g_Finger__state.pressure = 0.0f;
   g_Finger__state.finger = 0;
   g_Finger__state.x = 0;
   g_Finger__state.y = 0;
@@ -36,6 +44,20 @@ void Finger__OnInput(const SDL_Event* event) {
   g_Finger__state.wheel_y = 0.0f;
 
   switch (event->type) {
+    // Windows-specific events (ie. to poll Windows Ink pen driver data)
+    case SDL_SYSWMEVENT:
+      switch (event->syswm.msg->msg.win.msg) {
+        case WM_POINTERUPDATE:
+          UINT32 pointerId = GET_POINTERID_WPARAM(event->syswm.msg->msg.win.wParam);
+          POINTER_PEN_INFO penInfo;
+          if (GetPointerPenInfo(pointerId, &penInfo)) {
+            // how to find tilt?
+            g_Finger__state.pressure = penInfo.pressure / MAX_PEN_PRESSURE;
+          }
+          break;
+      }
+      break;
+
     case SDL_MOUSEMOTION:
       g_Finger__state.event = FINGER_MOVE;
       g_Finger__state.x = event->motion.x;
@@ -89,7 +111,7 @@ void Finger__OnInput(const SDL_Event* event) {
       g_Finger__state.touchId = event->tfinger.touchId;
       g_Finger__state.finger = event->tfinger.fingerId;
       // TODO: add support for GetPointerPenInfo (Windows Ink API)
-      g_Finger__state.pressure = event->tfinger.pressure;
+      // g_Finger__state.pressure = event->tfinger.pressure;
 
       Finger__DispatchCallbacks();
       break;
@@ -102,7 +124,7 @@ void Finger__OnInput(const SDL_Event* event) {
       g_Finger__state.button_l = SDL_FINGERDOWN == event->type;
       g_Finger__state.touchId = event->tfinger.touchId;
       g_Finger__state.finger = event->tfinger.fingerId;
-      g_Finger__state.pressure = event->tfinger.pressure;
+      // g_Finger__state.pressure = event->tfinger.pressure;
 
       Finger__DispatchCallbacks();
       break;
