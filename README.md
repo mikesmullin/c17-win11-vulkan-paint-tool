@@ -1,6 +1,19 @@
 # Tool 1
 
-This is a prototype of a paint tool.
+This is a prototype of a paint tool using C17 on Windows. 
+- It supports pen pressure input.
+- It uses CPU to draw to an in-memory heap buffer, which is copied to GPU on every frame.
+
+## Prerequisites
+- Windows 8 or newer (for Windows Ink support)
+- Vulkan SDK (not-included)  
+  https://www.lunarg.com/vulkan-sdk/
+- SDL2 (included)
+- GLM (included)
+- Clang (recommended)
+
+## Screenshot
+![screenshot](docs/imgs/screenshot.png)
 
 ## Building
 
