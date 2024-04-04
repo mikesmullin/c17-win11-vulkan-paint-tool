@@ -17,6 +17,8 @@ static u16 WINDOW_HEIGHT = 800;
 static const u8 PHYSICS_FPS = 50;
 static const u8 RENDER_FPS = 60;
 
+static bool isCanvasDirty = false;
+
 static bool isVBODirty = true;
 static bool isUBODirty[] = {true, true};
 
@@ -79,7 +81,20 @@ static void fingerCallback();
 
 #define ATTR_COUNT 4
 
+u32 urandom(u32 a, u32 b) {
+  return a + ((rand() / (f32)RAND_MAX) * (b - a));
+}
+
+u32 canvas_size = 0;
+u8* canvas;
+VkBuffer buf;
+VkDeviceMemory bufMemory;
+void* data;
+
 int main() {
+  canvas_size = sizeof(u8) * WINDOW_WIDTH * WINDOW_HEIGHT * 4;
+  canvas = (u8*)malloc(canvas_size);
+
   printf("begin main.\n");
 
   Timer__MeasureCycles();
@@ -147,7 +162,40 @@ int main() {
           offsetof(Instance_t, scale)});
   Vulkan__CreateFrameBuffers(&s_Vulkan);
   Vulkan__CreateCommandPool(&s_Vulkan);
-  Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0]);
+
+  DEBUG_TRACE
+
+  DEBUG_TRACE
+  Vulkan__CreateTextureImageRW(
+      &s_Vulkan,
+      WINDOW_WIDTH,
+      WINDOW_HEIGHT,
+      canvas_size,
+      canvas,
+      &buf,
+      &bufMemory,
+      &data);
+
+  DEBUG_TRACE
+  for (u32 i = 0; i < 100; i += 4) {
+    canvas[i + 0] = urandom(0, 0);    // R
+    canvas[i + 1] = urandom(0, 255);  // G
+    canvas[i + 2] = urandom(0, 255);  // B
+    canvas[i + 3] = urandom(0, 255);  // A
+  }
+  DEBUG_TRACE
+  Vulkan__UpdateTextureImageRW(
+      &s_Vulkan,
+      WINDOW_WIDTH,
+      WINDOW_HEIGHT,
+      canvas_size,
+      canvas,
+      &buf,
+      &bufMemory,
+      &data);
+
+  DEBUG_TRACE
+  // Vulkan__CreateTextureImage(&s_Vulkan, textureFiles[0]);
   Vulkan__CreateTextureImageView(&s_Vulkan);
   Vulkan__CreateTextureSampler(&s_Vulkan);
   Vulkan__CreateVertexBuffer(&s_Vulkan, 0, sizeof(vertices), vertices);
@@ -199,6 +247,10 @@ static void keyboardCallback() {
   }
 }
 
+static bool isFingerDown = false;
+static u16 fingerX = 0;
+static u16 fingerY = 0;
+
 static void fingerCallback() {
   // LOG_DEBUGF(
   //     "SDL_FINGER state "
@@ -230,8 +282,8 @@ static void fingerCallback() {
     // TODO: how to animate camera zoom with spring damping/smoothing?
     // TODO: how to move this into physics callback? or is it better not to?
     // world.cam[2] += -g_Finger__state.wheel_y * PLAYER_ZOOM_SPEED /* deltaTime*/;
-    isUBODirty[0] = true;
-    isUBODirty[1] = true;
+    // isUBODirty[0] = true;
+    // isUBODirty[1] = true;
   }
 
   else if (FINGER_DOWN == g_Finger__state.event) {
@@ -239,28 +291,61 @@ static void fingerCallback() {
     // TODO: animate player walk-to, before placing-down
     // TODO: convert window x,y to world x,y
 
-    vec3 pos = (vec3){g_Finger__state.x, g_Finger__state.y, 0.0f};
-    mat4 pvMatrix;
-    glm_mat4_mul(ubo1.proj, ubo1.view, pvMatrix);
-    vec4 viewport = (vec4){0, 0, s_Window.width, s_Window.height};
-    vec3 dest;
-    glm_unproject(pos, pvMatrix, viewport, dest);
+    // vec3 pos = (vec3){g_Finger__state.x, g_Finger__state.y, 0.0f};
+    // mat4 pvMatrix;
+    // glm_mat4_mul(ubo1.proj, ubo1.view, pvMatrix);
+    // vec4 viewport = (vec4){0, 0, s_Window.width, s_Window.height};
+    // vec3 dest;
+    // glm_unproject(pos, pvMatrix, viewport, dest);
+    // isVBODirty = true;
 
-    // TODO: blit the paintbrush stencil onto texture buffer
-
-    isVBODirty = true;
+    isFingerDown = true;
+    fingerX = g_Finger__state.x;
+    fingerY = g_Finger__state.y;
+  } else if (FINGER_UP == g_Finger__state.event) {
+    isFingerDown = false;
+    fingerX = g_Finger__state.x;
+    fingerY = g_Finger__state.y;
+  } else if (FINGER_MOVE == g_Finger__state.event) {
+    fingerX = g_Finger__state.x;
+    fingerY = g_Finger__state.y;
   }
 }
 
 void physicsCallback(const f64 deltaTime) {
   // OnFixedUpdate(deltaTime);
-  // TODO: perhaps might use ths to perform blit calculations
+
+  // perform blit calculations
+  if (isFingerDown) {
+    u32 begin = ((fingerY * WINDOW_WIDTH) + fingerX) * 4;
+    u32 end = begin + 100;
+    for (u32 i = begin; i < end; i += 4) {
+      canvas[i + 0] = urandom(0, 255);  // R
+      canvas[i + 1] = urandom(0, 255);  // G
+      canvas[i + 2] = urandom(0, 255);  // B
+      canvas[i + 3] = urandom(0, 255);  // A
+    }
+    isCanvasDirty = true;
+  }
 }
 
 static u8 newTexId;
 static void renderCallback(const f64 deltaTime) {
   // OnUpdate(deltaTime);
   // TODO: perhaps might use this to render brush cursor
+
+  if (isCanvasDirty) {
+    isCanvasDirty = false;
+    Vulkan__UpdateTextureImageRW(
+        &s_Vulkan,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        canvas_size,
+        canvas,
+        &buf,
+        &bufMemory,
+        &data);
+  }
 
   // character frame animation
   if (isVBODirty) {

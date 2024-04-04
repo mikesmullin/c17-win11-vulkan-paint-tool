@@ -156,6 +156,24 @@ void Vulkan__CreateBuffer(
     VkMemoryPropertyFlags properties,
     VkBuffer* buffer,
     VkDeviceMemory* bufferMemory);
+void Vulkan__CreateTextureImageRW(
+    Vulkan_t* self,
+    u16 w,
+    u16 h,
+    u32 len,
+    void* pixels,
+    VkBuffer* buf,
+    VkDeviceMemory* bufMemory,
+    void* data);
+void Vulkan__UpdateTextureImageRW(
+    Vulkan_t* self,
+    u16 w,
+    u16 h,
+    u32 len,
+    void* pixels,
+    VkBuffer* buf,
+    VkDeviceMemory* bufMemory,
+    void* data);
 void Vulkan__CreateTextureImage(Vulkan_t* self, const char* file);
 u32 Vulkan__FindMemoryType(Vulkan_t* self, u32 typeFilter, VkMemoryPropertyFlags properties);
 void Vulkan__BeginSingleTimeCommands(Vulkan_t* self, VkCommandBuffer* commandBuffer);

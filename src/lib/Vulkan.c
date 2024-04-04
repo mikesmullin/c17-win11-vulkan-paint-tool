@@ -1194,6 +1194,24 @@ void Vulkan__TransitionImageLayout(
 
     sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  }
+  // TODO: remove experimental
+  else if (
+      oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+      newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    barrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else if (
+      oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+      newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    barrier[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
   } else {
     ASSERT_CONTEXT(false, "unsupported layout transition!")
   }
@@ -1238,6 +1256,90 @@ void Vulkan__CopyBufferToImage(
       &region);
 
   Vulkan__EndSingleTimeCommands(self, &commandBuffer);
+}
+
+void Vulkan__CreateTextureImageRW(
+    Vulkan_t* self,
+    u16 w,
+    u16 h,
+    u32 len,
+    void* pixels,
+    VkBuffer* buf,
+    VkDeviceMemory* bufMemory,
+    void* data) {
+  Vulkan__CreateBuffer(
+      self,
+      len,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      buf,
+      bufMemory);
+
+  vkMapMemory(self->m_logicalDevice, *bufMemory, 0, len, 0, data);
+  memcpy(*(void**)data, pixels, (size_t)(len));
+  // vkUnmapMemory(self->m_logicalDevice, bufMemory);
+
+  Vulkan__CreateImage(
+      self,
+      w,
+      h,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      &self->m_textureImage,
+      &self->m_textureImageMemory);
+
+  Vulkan__TransitionImageLayout(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+  Vulkan__CopyBufferToImage(self, buf, &self->m_textureImage, (u32)(w), (u32)(h));
+
+  Vulkan__TransitionImageLayout(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  // vkDestroyBuffer(self->m_logicalDevice, buf, NULL);
+  // vkFreeMemory(self->m_logicalDevice, bufMemory, NULL);
+}
+
+void Vulkan__UpdateTextureImageRW(
+    Vulkan_t* self,
+    u16 w,
+    u16 h,
+    u32 len,
+    void* pixels,
+    VkBuffer* buf,
+    VkDeviceMemory* bufMemory,
+    void* data) {
+  memcpy(*(void**)data, pixels, (size_t)(len));
+  // vkUnmapMemory(self->m_logicalDevice, bufMemory);
+
+  Vulkan__TransitionImageLayout(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+  Vulkan__CopyBufferToImage(self, buf, &self->m_textureImage, (u32)(w), (u32)(h));
+
+  Vulkan__TransitionImageLayout(
+      self,
+      &self->m_textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  // vkDestroyBuffer(self->m_logicalDevice, buf, NULL);
+  // vkFreeMemory(self->m_logicalDevice, bufMemory, NULL);
 }
 
 /**
