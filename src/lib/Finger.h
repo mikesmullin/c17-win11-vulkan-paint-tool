@@ -18,6 +18,7 @@ typedef struct {
   FingerEvent event;
   u8 clicks;
   f32 pressure;
+  u8 touchId;
   u8 finger;
   s32 x;
   s32 y;

@@ -252,19 +252,22 @@ static u16 fingerX = 0;
 static u16 fingerY = 0;
 
 static void fingerCallback() {
+  if (0 == g_Finger__state.x && 0 == g_Finger__state.y) return;
+
   // LOG_DEBUGF(
   //     "SDL_FINGER state "
   //     "event %s "
-  //     "clicks %u pressure %2.5f finger %u "
+  //     "clicks %u pressure %2.5f touchId %u finger %u "
   //     "x %u y %u x_rel %d y_rel %d wheel_x %2.5f wheel_y %2.5f "
   //     "button_l %d button_m %d button_r %d button_x1 %d button_x2 %d ",
   //     (g_Finger__state.event == FINGER_UP       ? "UP"
   //      : g_Finger__state.event == FINGER_DOWN   ? "DOWN"
   //      : g_Finger__state.event == FINGER_MOVE   ? "MOVE"
   //      : g_Finger__state.event == FINGER_SCROLL ? "SCROLL"
-  //                                        : ""),
+  //                                               : ""),
   //     g_Finger__state.clicks,
   //     g_Finger__state.pressure,
+  //     g_Finger__state.touchId,
   //     g_Finger__state.finger,
   //     g_Finger__state.x,
   //     g_Finger__state.y,
@@ -307,6 +310,9 @@ static void fingerCallback() {
     fingerX = g_Finger__state.x;
     fingerY = g_Finger__state.y;
   } else if (FINGER_MOVE == g_Finger__state.event) {
+    if (g_Finger__state.pressure > 0) {
+      isFingerDown = true;
+    }
     fingerX = g_Finger__state.x;
     fingerY = g_Finger__state.y;
   }
@@ -322,14 +328,17 @@ void physicsCallback(const f64 deltaTime) {
   // perform blit calculations
   if (isFingerDown) {
     u32 BRUSH_SIZE = 16;
+    u8 COLOR_R = urandom(0, 255);
+    u8 COLOR_G = urandom(0, 255);
+    u8 COLOR_B = urandom(0, 255);
     for (u32 x = 0; x < BRUSH_SIZE; x++) {
       for (u32 y = 0; y < BRUSH_SIZE; y++) {
         u32 i = xy2i(fingerX + x, fingerY + y, WINDOW_WIDTH, 4);
         if (i > canvas_size) continue;
-        canvas[i + 0] = 255;  // R
-        canvas[i + 1] = 255;  // G
-        canvas[i + 2] = 0;    // B
-        canvas[i + 3] = 255;  // A
+        canvas[i + 0] = COLOR_R;  // R
+        canvas[i + 1] = COLOR_G;  // G
+        canvas[i + 2] = COLOR_B;  // B
+        canvas[i + 3] = 255;      // A
       }
     }
 

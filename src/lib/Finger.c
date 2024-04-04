@@ -52,17 +52,6 @@ void Finger__OnInput(const SDL_Event* event) {
       Finger__DispatchCallbacks();
       break;
 
-    case SDL_FINGERMOTION:
-      g_Finger__state.event = FINGER_MOVE;
-      g_Finger__state.x = event->tfinger.x;
-      g_Finger__state.y = event->tfinger.y;
-      g_Finger__state.x_rel = event->tfinger.dx;
-      g_Finger__state.y_rel = event->tfinger.dy;
-      g_Finger__state.finger = event->tfinger.fingerId;
-
-      Finger__DispatchCallbacks();
-      break;
-
     case SDL_MOUSEWHEEL:
       g_Finger__state.event = FINGER_SCROLL;
       // g_Finger__state.wheel_x = event->wheel.x;
@@ -89,14 +78,31 @@ void Finger__OnInput(const SDL_Event* event) {
       Finger__DispatchCallbacks();
       break;
 
+      // TODO: filter by .which == SDL_TOUCH_MOUSEID
+      //       see: https://wiki.libsdl.org/SDL2/SDL_MouseMotionEvent#remarks
+    case SDL_FINGERMOTION:
+      g_Finger__state.event = FINGER_MOVE;
+      g_Finger__state.x = event->tfinger.x;
+      g_Finger__state.y = event->tfinger.y;
+      g_Finger__state.x_rel = event->tfinger.dx;
+      g_Finger__state.y_rel = event->tfinger.dy;
+      g_Finger__state.touchId = event->tfinger.touchId;
+      g_Finger__state.finger = event->tfinger.fingerId;
+      // TODO: add support for GetPointerPenInfo (Windows Ink API)
+      g_Finger__state.pressure = event->tfinger.pressure;
+
+      Finger__DispatchCallbacks();
+      break;
+
     case SDL_FINGERDOWN:
     case SDL_FINGERUP:
       g_Finger__state.event = SDL_FINGERDOWN == event->type ? FINGER_DOWN : FINGER_UP;
       g_Finger__state.x = event->tfinger.x;
       g_Finger__state.y = event->tfinger.y;
-      g_Finger__state.pressure = event->tfinger.pressure;
-      g_Finger__state.finger = event->tfinger.fingerId;
       g_Finger__state.button_l = SDL_FINGERDOWN == event->type;
+      g_Finger__state.touchId = event->tfinger.touchId;
+      g_Finger__state.finger = event->tfinger.fingerId;
+      g_Finger__state.pressure = event->tfinger.pressure;
 
       Finger__DispatchCallbacks();
       break;
